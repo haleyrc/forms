@@ -8,16 +8,19 @@ var Forms = fdl.NewRegistry()
 
 func init() {
 	panicOnError(Forms.Register(fdl.Form{
-		Code: "1234",
+		Code:        "1234",
+		Description: "The RIC for TX SI sales.",
 		Nodes: []fdl.Node{
 			fdl.TextNode{
-				Name:     "FirstName",
-				Location: fdl.Location{X: 10, Y: 20},
-				FontSize: 12,
+				Name:        "FirstName",
+				Description: "The customer's first name.",
+				Location:    fdl.Location{X: 10, Y: 20},
+				FontSize:    12,
 			},
 			fdl.OptionNode{
-				Name: "Style",
-				Size: 10,
+				Name:        "Style",
+				Description: "The body style of the vehicle.",
+				Size:        10,
 				Options: []fdl.Option{
 					fdl.Option{
 						Location: fdl.Location{X: 10, Y: 30},

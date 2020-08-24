@@ -10,10 +10,36 @@ type Option struct {
 	Location Location
 }
 
+func (o Option) Valid() error {
+	if o.Name == "" {
+		return fmt.Errorf("invalid option: name must be provided")
+	}
+	return nil
+}
+
 type OptionNode struct {
-	Name    string
-	Size    int
-	Options []Option
+	Name        string
+	Description string
+	Size        int
+	Options     []Option
+}
+
+func (n OptionNode) Valid() error {
+	if n.Name == "" {
+		return fmt.Errorf("invalid option node: name must be provided")
+	}
+	if n.Description == "" {
+		return fmt.Errorf("invalid option node: description must be provided")
+	}
+	if n.Size == 0 {
+		return fmt.Errorf("invalid option node: size must be greater than zero")
+	}
+	for _, opt := range n.Options {
+		if err := opt.Valid(); err != nil {
+			return fmt.Errorf("invalid option node: %w", err)
+		}
+	}
+	return nil
 }
 
 func (n OptionNode) Type() string {
@@ -64,7 +90,8 @@ func (n OptionNode) Types() string {
 
 func (n OptionNode) Render() string {
 	return fmt.Sprintf(
-		"r.PrintCheck(f.%s.Location(), frl.Size(%d))",
+		"r.PrintCheck(\nfrl.Location{\nX: f.%s.Location().X,\nY: f.%s.Location().Y,\n}, \nfrl.Size(%d),\n)",
+		n.Name,
 		n.Name,
 		n.Size,
 	)

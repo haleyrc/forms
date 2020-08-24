@@ -11,4 +11,7 @@ type Node interface {
 	// Render returns a string suitable for including in a frl form's BuildPDF
 	// method.
 	Render() string
+
+	// Valid validates the the node contents and returns an error if any.
+	Valid() error
 }
