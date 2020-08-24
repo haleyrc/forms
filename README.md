@@ -80,7 +80,9 @@ func (n OptionNode) Type() string {
 
 func (n OptionNode) Types() string {
     var sb strings.Builder
-    fmt.Fprintf(sb, "type %sOption string\n\n", n.Name)
+    fmt.Fprintf(sb, "type %sOption string\n", n.Name)
+    fmt.Fprintln(sb)
+
     fmt.Fprintf(sb, "const (\n")
     for _, opt := range n.Options {
         fmt.Fprintf(sb,
@@ -91,6 +93,27 @@ func (n OptionNode) Types() string {
         )
         fmt.Fprintf(sb, ")\n")
     }
+    fmt.Fprintln(sb)
+
+    fmt.Fprintf(sb, "func (o %sOption) Location() fdl.Location {\n", n.Name)
+    fmt.Fprintln(sb, "        switch o {")
+    for _, opt := range n.Options {
+        fmt.Fprintf(sb,
+            "        case %sOption%s:\n",
+            n.Name,
+            opt.Name,
+        )
+        fmt.Fprintf(sb,
+            "                return fdl.Location{X: %d, Y: %d}\n",
+            opt.Location.X,
+            opt.Location.Y,
+        )
+    }
+    fmt.Fprintln(sb, "        }")
+    fmt.Fprintf(sb, "        panic(fmt.Errorf(\"generated: invalid %sOption: \%s\", o))\n")
+    fmt.Fprintln(sb, "}")
+    fmt.Fprintln(sb)
+
     return sb.String()
 }
 
@@ -208,16 +231,65 @@ type Renderer interface {
 }
 ```
 
-## `form`
+## `package form`
+
+The `form` package is the end-result of all of the compilation steps and is the
+import that would be used in a live production system. Here is our toy form in
+its compiled state:
 
 ```go
+// File: form1234.go
+package form
+
+// The following type and method definitions were generated from the
+// OptionsNode's Types() method.
+
+// This line derives from the following:
+//
+//   fmt.Fprintf(sb, "type %sOption string\n", n.Name)
+/
+// where in this case, n.Name == "Style".
 type StyleOption string
 
+// The following lines are generated from the snippet:
+//
+//    fmt.Fprintf(sb, "const (\n")
+//    for _, opt := range n.Options {
+//        fmt.Fprintf(sb,
+//            "        %sOption%s = \"%s\"\n",
+//            n.Name,
+//            opt.Name,
+//            opt.Name,
+//        )
+//        fmt.Fprintf(sb, ")\n")
+//    }
+//
 const (
     StyleOptionSedan StyleOption = "Sedan"
     StyleOptionTruck StyleOption = "Truck"
 )
 
+// This method for determing where a check needs to be placed based on the
+// selected style was generated from:
+//
+//    fmt.Fprintf(sb, "func (o %sOption) Location() fdl.Location {\n", n.Name)
+//    fmt.Fprintln(sb, "        switch o {")
+//    for _, opt := range n.Options {
+//        fmt.Fprintf(sb,
+//            "        case %sOption%s:\n",
+//            n.Name,
+//            opt.Name,
+//        )
+//        fmt.Fprintf(sb,
+//            "                return fdl.Location{X: %d, Y: %d}\n",
+//            opt.Location.X,
+//            opt.Location.Y,
+//        )
+//    }
+//    fmt.Fprintln(sb, "        }")
+//    fmt.Fprintf(sb, "        panic(fmt.Errorf(\"generated: invalid %sOption: \%s\", o))\n")
+//    fmt.Fprintln(sb, "}")
+//
 func (so StyleOption) Location() fdl.Location {
     switch so {
     case StyleOptionSedan:
@@ -228,11 +300,31 @@ func (so StyleOption) Location() fdl.Location {
     panic(fmt.Errorf("generated: invalid StyleOption: %s", so))
 }
 
+// The FormXYZ type is generated directly by concatenating the form code to
+// "Form" and then enumerating the nodes one by one using their Name() and
+// Type() values, e.g.:
+//
+//   fmt.Printf("type Form%s struct{\n", f.Code)
+//   for _, n := f.Nodes {
+//       fmt.Printf("        %s %s\n", n.Name(), n.Type())
+//   }
+//   fmt.Printf("}\n")
+//
 type Form1234 struct {
     FirstName string
     Style     StyleOption
 }
 
+// Finally, every Form has a BuildPDF method that takes a Renderer and returns
+// an error. The contents of the method are derived using each Node's Render
+// method in turn. For instance:
+//
+//   fmt.Printf("func (f Form%s) BuildPDF(r frl.Renderer) erorr {\n")
+//   for _, node := range f.Nodes {
+//       fmt.Println(node.Render())
+//   }
+//   fmt.Println("}")
+//
 func (f Form1234) BuildPDF(r frl.Renderer) error {
     if err := r.PrintText(frl.Location{X: 10, Y: 20}, frl.FontSize(12), n.FirstName); err != nil {
         return err
@@ -244,5 +336,39 @@ func (f Form1234) BuildPDF(r frl.Renderer) error {
 }
 ```
 
-TODO: Add the generation code for the Location method to the fdl section
-TODO: Add comments in the generated code explaining how the lines were derived
+To use this package to print form 1234, we can do something like the following:
+
+```go
+package main
+
+import (
+    // Other imports...
+
+    "github.com/haleyrc/forms/form"
+    "github.com/haleyrc/forms/render"
+)
+
+func main() {
+    // This is a concrete implementation of the frl.Renderer interface. In our
+    // fiction, this might output .py files that can be imported into a project
+    // using the insert_correct_name PDF library.
+    r := render.NewPythonRenderer()
+
+    // We populate the form however is appropriate, but probably as a mix of
+    // stored data and an incoming request:
+    f := form.Form1234 {
+        FirstName: "Joe",
+        Style: form.StyleOptionSedan,
+    }
+
+    // Then we call BuildPDF, passing it the renderer we've chosen. For testing,
+    // this could just be a mock that verifies a sequence of commands was
+    // executed. It could also be an externally defined implementation that
+    // creates Canvas elements for displaying fields in a browser. It really
+    // doesn't matter as long as the implementation correctly translates the
+    // inputs into what the client program is expecting.
+    if err := f.BuildPDF(r); err != nil {
+        panic(err)
+    }
+}
+```
