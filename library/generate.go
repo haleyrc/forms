@@ -90,3 +90,44 @@ func (f Form{{ .Form.Code }}) BuildPDF(r frl.Renderer) error {
 	return nil
 }
 `
+
+var pythonFormTemplate = `
+import frl
+from enum import Enum
+
+class StyleOption(Enum):
+  SEDAN = "Sedan"
+  TRUCK = "Truck"
+
+  @property
+  def location(self):
+    if self == StyleOption.SEDAN:
+      return frl.Location(x=10, y=30)
+    elif self == StyleOption.Truck:
+      return frl.Location(x=30, y=30)
+    else:
+      raise Exception("invalid style option")
+
+class Form1234(frl.Form):
+
+  name = "Form 1234"
+  description = "The RIC for TX SI sales."
+
+  def __init__(self, *, first_name=None, style=None):
+    if first_name is None:
+      raise frl.InvalidParameterException("first name must be provided")
+    if style is None:
+      raise frl.InvalidParameterException("style must be provided")
+
+    self.first_name = first_name
+    self.style = style
+
+  def build_pdf(self, renderer):
+    renderer.print_text(
+      frl.Location(x=10, y=20),
+      frl.FontSize(12),
+      self.first_name)
+    renderer.print_check(
+      self.style.location,
+      frl.Size(10))
+`
