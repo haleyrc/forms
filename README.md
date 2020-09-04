@@ -1,3 +1,16 @@
+> Note: This repository is under active development and is not considered stable.
+> Use at your own risk.
+
+This project is an experiment in a portable system for describing and printing
+forms (the dead tree kind, not web forms). The ultimate goal is go create a
+pseudo-DSL that's actually just Go that can then be used in conjuction with
+`go generate` to produce usable form libraries in whatever target language we've
+got a renderer for.
+
+The project is currently broken into two pieces: one for describing forms in a
+render-agnostic way and another for describing the primitive rendering types we
+need to produce the final output.
+
 ## `fdl`
 
 `fdl` (pronounced "fiddle") contains primitives for describing the shape of form
